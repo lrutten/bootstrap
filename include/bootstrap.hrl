@@ -17,9 +17,12 @@
 -ifndef(bootstrap_hrl_).
 -define(bootstrap_hrl_, 1).
 
+
 %%%=============================================================================
 %%% Defines related to application internal logging.
 %%%=============================================================================
+
+-define(DEBUG, 1).
 
 -define(ERR(Fmt, Args), ok = error_logger:error_msg(Fmt, Args)).
 

@@ -123,16 +123,16 @@ handle_info({udp, S, IP, Port, Data}, State = #state{socket = S}) ->
         {_, ?BOOTSTRAP_PING(PingNode, _)} when PingNode == node() ->
             {noreply, State};
         {_, ?BOOTSTRAP_PING(PingNode, PingAddr)} ->
-            ?DBG("Got PING from ~s with source port ~w.~n", [PingNode, Port]),
+            io:format("Got PING from ~s with source port ~w.~n", [PingNode, Port]),
             {noreply, handle_ping(PingNode, PingAddr, Port, State)};
         {_, ?BOOTSTRAP_PONG(Node, _)} when Node == node() ->
             {noreply, State};
         {_, ?BOOTSTRAP_PONG(Node, PingNode)} ->
-            ?DBG("Got PONG from ~s (answering ~s) with source port ~w.~n",
+            io:format("Got PONG from ~s (answering ~s) with source port ~w.~n",
                  [Node, PingNode, Port]),
             {noreply, handle_pong(Node, PingNode, State)};
         {{I1, I2, I3, I4}, Msg} ->
-            ?DBG("Ignoring ~w from ~w.~w.~w.~w:~w.~n",
+            io:format("Ignoring ~w from ~w.~w.~w.~w:~w.~n",
                  [Msg, I1, I2, I3, I4, Port]),
             {noreply, State}
     catch
@@ -168,12 +168,12 @@ terminate(_Reason, #state{socket = S}) -> gen_udp:close(S).
 open_udp_port(State = #state{socket = undefined, port = PrimaryPort}) ->
     Ports = bootstrap_lib:get_env(secondary_ports),
     {{ok, Socket}, Port} = open_oneof_udp_ports([PrimaryPort | Ports]),
-    ?DBG("Using port ~w.~n", [Port]),
+    io:format("Using port ~w.~n", [Port]),
     realloc_port_timer(Port, State#state{socket = Socket});
 open_udp_port(State = #state{socket = CurrentSocket, port = PrimaryPort}) ->
     case open_oneof_udp_ports([PrimaryPort]) of
         {{ok, NewSocket}, PrimaryPort} ->
-            ?DBG("Using port ~w.~n", [PrimaryPort]),
+            io:format("Using port ~w.~n", [PrimaryPort]),
             gen_udp:close(CurrentSocket),
             State#state{socket = NewSocket};
         {{error, _}, PrimaryPort} ->
@@ -248,7 +248,7 @@ handle_ping(PingNode, PingAddr = {I1, I2, I3, I4}, InPort, State) ->
     [begin
          Msg = term_to_binary(?BOOTSTRAP_PONG(node(), PingNode)),
          ok = gen_udp:send(State#state.socket, PingAddr, Port, Msg),
-         ?DBG("Sent PONG to ~w.~w.~w.~w:~w.~n", [I1, I2, I3, I4, Port])
+         io:format("Sent PONG to ~w.~w.~w.~w:~w.~n", [I1, I2, I3, I4, Port])
      end || Port <- lists:usort([InPort, State#state.port])],
     maybe_backoff(InPort, PingNode, State).
 
@@ -281,7 +281,7 @@ do_ping(Addresses, State = #state{socket = Socket, port = Port}) ->
     [begin
          Msg = term_to_binary(?BOOTSTRAP_PING(node(), Addr)),
          ok = gen_udp:send(Socket, Addr, Port, Msg),
-         ?DBG("Sent PING to ~w.~w.~w.~w:~w.~n", [I1, I2, I3, I4, Port])
+         io:format("Sent PING to ~w.~w.~w.~w:~w.~n", [I1, I2, I3, I4, Port])
      end || Addr = {I1, I2, I3, I4} <- Addresses],
     State.
 
@@ -296,7 +296,7 @@ maybe_connect(Node, State = #state{mode = Mode, pattern = Pattern}) ->
     end,
     case Result of
         false   -> ?ERR("Failed to connect to matching node ~s.", [Node]);
-        true    -> ?DBG("Connected to matching node ~s.~n", [Node]);
+        true    -> io:format("Connected to matching node ~s.~n", [Node]);
         skipped -> ok
     end,
     State.
